@@ -22,13 +22,15 @@ export const schemaForm = z.object({
     .min(1, { message: "Contact information is required" }),
   address: z.string().min(1, { message: "Address is required" }),
 
+
   // Invoice Details
   invoiceNumber: z.string().min(1, { message: "Invoice number is required" }),
   date: z.date({ required_error: "Date is required" }),
   status: z.string().min(1, { message: "Status is required" }),
   paymentMethod: z.string().min(1, { message: "Payment method is required" }),
-  total_amount: z.array(z.number()),
-  gst: z.string().optional(),
+  total_amount: z.number().min(0, { message: "Total amount required" }),
+  gst: z.number().optional(),
+  totalmaking_charge: z.number().optional(),
 
   // Purchase Details
   purchaseItems: z

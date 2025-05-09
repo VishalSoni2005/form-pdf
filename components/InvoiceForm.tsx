@@ -69,12 +69,15 @@ export default function InvoiceForm() {
       customerName: "vishal",
       contactInfo: "7667860101",
       address: "Pune",
-      invoiceNumber: "INV-0001",
+      invoiceNumber: `INV-${new Date().getFullYear()}-${String(
+        Math.floor(Math.random() * 1000)
+      ).padStart(3, "0")}`,
       date: new Date(),
       status: "Paid",
-      gst: "",
+      gst: 0,
+      totalmaking_charge: 0,
       paymentMethod: "Upi",
-      total_amount: [],
+      total_amount: 0,
       purchaseItems: [
         {
           itemDescription: "Jhumka",
@@ -97,39 +100,15 @@ export default function InvoiceForm() {
 
   const watchPurchaseItems = form.watch("purchaseItems");
 
-  // Calculate total amount whenever purchase items change
-  useEffect(() => {
-    const total = watchPurchaseItems.reduce(
-      (acc, item) => acc + (item.amount || 0),
-      0
-    );
-    setTotalAmount(total);
-  }, [watchPurchaseItems]);
-
-  
-  // Calculate total amount whenever purchase items change, GST selection changes, or making charge changes
-  useEffect(() => {
-    const itemsTotal = watchPurchaseItems.reduce(
-      (acc, item) =>
-        acc + (Number.parseFloat(item.amount?.toString() ?? "0") || 0),
-      0
-    );
-
-    // Add making charge
-    let finalTotal = itemsTotal + makingCharge;
-
-    // Apply GST if included
-    if (gstIncluded) {
-      finalTotal = finalTotal * 1.03; // Adding 3% GST
-    }
-
-    setTotalAmount(finalTotal);
-  }, [watchPurchaseItems, gstIncluded, makingCharge]);
-
   async function onSubmit(data: FormValuesTypes) {
     setIsSubmitted(true);
 
-    console.log("form is :", fields);
+    // form.setValue("total_amount", totalAmount);
+    // form.setValue("totalmaking_charge", makingCharge);
+
+    // console.log("form is :", data);
+
+    console.log("total amount: ", totalAmount);
 
     console.log(
       "amount Array: ",
@@ -145,11 +124,45 @@ export default function InvoiceForm() {
     link.click();
     URL.revokeObjectURL(url);
   }
+
   const handleGstChange = (value: string) => {
-    form.setValue("gst", value);
+    form.setValue("gst", 0); // Replace 0 with the desired default value for GST
     setGstIncluded(value === "include");
   };
 
+  // Calculate total amount whenever purchase items change
+  useEffect(() => {
+    const total = watchPurchaseItems.reduce(
+      (acc, item) => acc + (item.amount || 0),
+      0
+    );
+    setTotalAmount(total);
+  }, [watchPurchaseItems]);
+
+  // Calculate total amount whenever purchase items change, GST selection changes, or making charge changes
+  useEffect(() => {
+    const itemsTotal = watchPurchaseItems.reduce(
+      (acc, item) =>
+        acc + (Number.parseFloat(item.amount?.toString() ?? "0") || 0),
+      0
+    );
+
+    // Add making charge
+    let finalTotal = itemsTotal + makingCharge;
+
+    form.setValue("totalmaking_charge", makingCharge);
+    
+    // Apply GST if included
+    if (gstIncluded) {
+      const gstAmount = finalTotal * 0.03; // 3% GST
+      form.setValue("gst", gstAmount); //! SETVALUE TO SET THE FORM VALUE
+      finalTotal += gstAmount;
+      form.setValue("total_amount", finalTotal);
+      // finalTotal = finalTotal * 1.03; // Adding 3% GST
+    }
+
+    setTotalAmount(finalTotal);
+  }, [watchPurchaseItems, gstIncluded, makingCharge]);
   return (
     <>
       {isSubmitted ? (
@@ -300,7 +313,12 @@ export default function InvoiceForm() {
                     <Calendar
                       mode="single"
                       selected={form.getValues("date")}
-                      onSelect={(date) => date && form.setValue("date", date)}
+                      onSelect={(date) => {
+                        if (date) {
+                          form.setValue("date", date);
+                          setDateSelected(false);
+                        }
+                      }}
                       initialFocus
                       className="rounded-md border-amber-200"
                     />
@@ -323,6 +341,7 @@ export default function InvoiceForm() {
                   Status <span className="text-red-500">*</span>
                 </Label>
                 <Select
+                  defaultValue={form.getValues("status")}
                   onValueChange={(value) => form.setValue("status", value)}>
                   <SelectTrigger
                     id="status"
@@ -361,6 +380,7 @@ export default function InvoiceForm() {
                   Payment Method <span className="text-red-500">*</span>
                 </Label>
                 <Select
+                  defaultValue={form.getValues("paymentMethod")}
                   onValueChange={(value) =>
                     form.setValue("paymentMethod", value)
                   }>
@@ -599,6 +619,7 @@ export default function InvoiceForm() {
                 onChange={(e) =>
                   setMakingCharge(Number.parseFloat(e.target.value) || 0)
                 }
+                // {...form.register("totalmaking_charge")}
                 className="bg-white border-amber-200 pr-2 w-42 sm:w-62"
               />
             </div>
