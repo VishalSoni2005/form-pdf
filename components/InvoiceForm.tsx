@@ -56,6 +56,7 @@ const formSchema = schemaForm;
 export default function InvoiceForm() {
   const [isSubmitted, setIsSubmitted] = useState(false);
   const [gstIncluded, setGstIncluded] = useState(false);
+  // const [selectedMakingCharge, setSelectedMakingCharge] = useState<number>(0);
 
   const [totalAmount, setTotalAmount] = useState<number>(0);
   const [makingCharge, setMakingCharge] = useState<number>(0);
@@ -77,6 +78,7 @@ export default function InvoiceForm() {
       gst: 0,
       totalmaking_charge: undefined,
       paymentMethod: "",
+      makingChargePercentage: 0,
       total_amount: undefined,
       purchaseItems: [
         {
@@ -132,7 +134,7 @@ export default function InvoiceForm() {
     setTotalAmount(total);
   }, [watchPurchaseItems]);
 
-  // Calculate total amount whenever purchase items change, GST selection changes, or making charge changes
+  // Calculate total amount whenever purchase items change, GST selection changes, or making charge percentage changes
   useEffect(() => {
     const itemsTotal = watchPurchaseItems.reduce(
       (acc, item) =>
@@ -140,22 +142,33 @@ export default function InvoiceForm() {
       0
     );
 
-    // Add making charge
-    let finalTotal = itemsTotal + makingCharge;
+    // Calculate making charge based on selected percentage
+    const makingChargePercentage =
+      form.getValues("makingChargePercentage") || 0;
+    const calculatedMakingCharge = (itemsTotal * makingChargePercentage) / 100;
 
-    form.setValue("totalmaking_charge", makingCharge);
+    // Update making charge state and form value
+    setMakingCharge(calculatedMakingCharge);
+    form.setValue("totalmaking_charge", calculatedMakingCharge);
 
-    // Apply GST 
+    // Add making charge to total
+    let finalTotal = itemsTotal + calculatedMakingCharge;
+
+    // Apply GST
     if (gstIncluded) {
       const gstAmount = finalTotal * 0.03; // 3% GST
-      form.setValue("gst", gstAmount); //! SETVALUE TO SET THE FORM VALUE
+      form.setValue("gst", gstAmount);
       finalTotal += gstAmount;
-      form.setValue("total_amount", finalTotal);
-      // finalTotal = finalTotal * 1.03; // Adding 3% GST
     }
 
+    form.setValue("total_amount", finalTotal);
     setTotalAmount(finalTotal);
-  }, [watchPurchaseItems, gstIncluded, makingCharge, form]);
+  }, [
+    watchPurchaseItems,
+    gstIncluded,
+    form,
+    form.getValues("makingChargePercentage"),
+  ]);
   return (
     <>
       {isSubmitted ? (
@@ -603,17 +616,59 @@ export default function InvoiceForm() {
           <div className="bg-gradient-to-r from-amber-100 to-amber-50 p-6 border-t border-amber-200 space-y-4">
             {/* Total Making Charge */}
             <div className="flex justify-between items-center gap-y-4">
-              <h3 className="text-xl font-serif font-semibold text-amber-900">
-                Total Making Charge
-              </h3>
+              <div className="flex justify-center items-center gap-x-4">
+                {" "}
+                <h3 className="text-xl font-serif font-semibold text-amber-900">
+                  Total Making Charge
+                </h3>
+                <Select
+                 // value={form.getValues("makingChargePercentage")?.toString()}
+                  onValueChange={(value) => {
+                    const percentage = Number(value);
+                    form.setValue("makingChargePercentage", percentage);
+
+                    // Calculate making charge based on the sum of all amounts
+                    const itemsTotal = watchPurchaseItems.reduce(
+                      (acc, item) =>
+                        acc +
+                        (Number.parseFloat(item.amount?.toString() ?? "0") ||
+                          0),
+                      0
+                    );
+                    const calculatedMakingCharge =
+                      (itemsTotal * percentage) / 100;
+                    setMakingCharge(calculatedMakingCharge);
+                  }}>
+                  <SelectTrigger
+                    id="Select Making Charge"
+                    className="border-amber-200 focus:ring-amber-400">
+                    <SelectValue placeholder="Select percentage" />
+                  </SelectTrigger>
+
+                  <SelectContent className="border-amber-200">
+                    <SelectItem
+                      value="10"
+                      className="text-amber-900 hover:bg-amber-50">
+                      10%
+                    </SelectItem>
+                    <SelectItem
+                      value="12"
+                      className="text-amber-900 hover:bg-amber-50">
+                      12%
+                    </SelectItem>
+                    <SelectItem
+                      value="18"
+                      className="text-amber-900 hover:bg-amber-50">
+                      18%
+                    </SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
               <Input
                 type="number"
-                value={makingCharge}
-                onChange={(e) =>
-                  setMakingCharge(Number.parseFloat(e.target.value) || 0)
-                }
-                // {...form.register("totalmaking_charge")}
-                className="bg-white border-amber-200 pr-2 w-42 sm:w-62"
+                value={makingCharge.toFixed(2)}
+                readOnly
+                className="bg-amber-50 border-amber-200 pr-2 w-42 sm:w-62"
               />
             </div>
 

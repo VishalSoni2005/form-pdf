@@ -28,6 +28,7 @@ export const schemaForm = z.object({
   paymentMethod: z.string().min(1, { message: "Payment method is required" }),
   total_amount: z.number().min(0, { message: "Total amount required" }),
   gst: z.number().optional(),
+  makingChargePercentage: z.number().optional(),
   totalmaking_charge: z.number().optional(),
 
   // Purchase Details

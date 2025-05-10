@@ -29,6 +29,7 @@ const generate = async (data: FormValuesTypes): Promise<Uint8Array> => {
     total_amount,
     gst,
     totalmaking_charge,
+    makingChargePercentage,
   } = data;
 
   console.log("Data: ", data);
@@ -54,6 +55,11 @@ const generate = async (data: FormValuesTypes): Promise<Uint8Array> => {
 
   // Amount details
   drawWithFallback(totalmaking_charge, 440, height - 515);
+  drawWithFallback(
+    "(" + makingChargePercentage?.toString() + "%" + ")",
+    138,
+    height - 510
+  );
   drawWithFallback(Math.round(gst || 0), 440, height - 552);
   drawText(firstPage, total_amount.toString(), 440, height - 590, font);
 
