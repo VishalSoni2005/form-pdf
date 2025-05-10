@@ -66,25 +66,25 @@ export default function InvoiceForm() {
   const form = useForm<FormValuesTypes>({
     resolver: zodResolver(formSchema),
     defaultValues: {
-      customerName: "vishal",
-      contactInfo: "7667860101",
-      address: "Pune",
+      customerName: "",
+      contactInfo: "",
+      address: "",
       invoiceNumber: `INV-${new Date().getFullYear()}-${String(
         Math.floor(Math.random() * 1000)
       ).padStart(3, "0")}`,
       date: new Date(),
-      status: "Paid",
+      status: "",
       gst: 0,
-      totalmaking_charge: 0,
-      paymentMethod: "Upi",
-      total_amount: 0,
+      totalmaking_charge: undefined,
+      paymentMethod: "",
+      total_amount: undefined,
       purchaseItems: [
         {
-          itemDescription: "Jhumka",
-          purity: "22k",
-          weight: 5,
-          ratePerGram: 10000,
-          amount: 60000,
+          itemDescription: "",
+          purity: "",
+          weight: undefined,
+          ratePerGram: undefined,
+          amount: undefined,
         },
       ],
     },
@@ -95,7 +95,7 @@ export default function InvoiceForm() {
   //* remove method to remove feild
   const { fields, append, remove } = useFieldArray({
     control: form.control,
-    name: "purchaseItems", // unique name for your array
+    name: "purchaseItems", // unique name of array
   });
 
   const watchPurchaseItems = form.watch("purchaseItems");
@@ -103,34 +103,27 @@ export default function InvoiceForm() {
   async function onSubmit(data: FormValuesTypes) {
     setIsSubmitted(true);
 
-    // form.setValue("total_amount", totalAmount);
-    // form.setValue("totalmaking_charge", makingCharge);
-
-    // console.log("form is :", data);
-
-    console.log("total amount: ", totalAmount);
-
-    console.log(
-      "amount Array: ",
-      data.purchaseItems.map((item) => item.amount)
-    );
-
-    const pdfBytes = await generate(data);
-    const blob = new Blob([pdfBytes], { type: "application/pdf" });
-    const url = URL.createObjectURL(blob);
-    const link = document.createElement("a");
-    link.href = url;
-    link.download = "invoice.pdf";
-    link.click();
-    URL.revokeObjectURL(url);
+    try {
+      const pdfBytes = await generate(data);
+      const blob = new Blob([pdfBytes], { type: "application/pdf" });
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement("a");
+      link.href = url;
+      link.download = `invoice-${data.invoiceNumber}.pdf`;
+      link.click();
+      URL.revokeObjectURL(url);
+    } catch (error) {
+      console.log("error occured: ", error);
+    } finally {
+      setIsSubmitted(false);
+    }
   }
 
   const handleGstChange = (value: string) => {
-    form.setValue("gst", 0); // Replace 0 with the desired default value for GST
+    form.setValue("gst", 0);
     setGstIncluded(value === "include");
   };
 
-  // Calculate total amount whenever purchase items change
   useEffect(() => {
     const total = watchPurchaseItems.reduce(
       (acc, item) => acc + (item.amount || 0),
@@ -151,8 +144,8 @@ export default function InvoiceForm() {
     let finalTotal = itemsTotal + makingCharge;
 
     form.setValue("totalmaking_charge", makingCharge);
-    
-    // Apply GST if included
+
+    // Apply GST 
     if (gstIncluded) {
       const gstAmount = finalTotal * 0.03; // 3% GST
       form.setValue("gst", gstAmount); //! SETVALUE TO SET THE FORM VALUE
@@ -162,7 +155,7 @@ export default function InvoiceForm() {
     }
 
     setTotalAmount(finalTotal);
-  }, [watchPurchaseItems, gstIncluded, makingCharge]);
+  }, [watchPurchaseItems, gstIncluded, makingCharge, form]);
   return (
     <>
       {isSubmitted ? (

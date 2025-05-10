@@ -21,8 +21,6 @@ export const schemaForm = z.object({
     .string()
     .min(1, { message: "Contact information is required" }),
   address: z.string().min(1, { message: "Address is required" }),
-
-
   // Invoice Details
   invoiceNumber: z.string().min(1, { message: "Invoice number is required" }),
   date: z.date({ required_error: "Date is required" }),
